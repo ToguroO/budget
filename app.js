@@ -1,384 +1,250 @@
-var budgetController = (function () {
-    var Expense = function (id, description, value) {
-        this.id = id;
-        this.description = description;
-        this.value = value;
-        this.percentage = -1;
+'use strict'
+
+
+var todoController = (function () {
+  var Todo = function (id, description) {
+    this.id = id;
+    this.description = description;
+    this.completed = false;
+  };
+
+  var todos = [],
+
+    createId = function () {
+      if (todos.length > 0) {
+        return todos[todos.length - 1].id + 1;
+      } else {
+        return 0;
+      }
     };
 
-    Expense.prototype.calculatePercentage = function (totalIncome) {
-        if (totalIncome > 0) {
-            this.percentage = Math.round((this.value / totalIncome * 100));
-        } else {
-            this.percentage = -1;
+  return {
+    addTodo: function (description) {
+      if (description) {
+        var id = createId();
+        var newTodo = new Todo(createId(), description);
+        todos.push(newTodo);
+        return newTodo;
+      }
+    },
+
+    deleteTodo: function (element) {
+      if (element) {
+        var id = element.getAttribute("data-id");
+
+        for (var i = 0; i < todos.length; i++) {
+          if (todos[i].id == id) {
+            todos.splice(i, 1);
+            break;
+          }
         }
-    };
+      }
+    },
 
-    Expense.prototype.getPercentage = function () {
-        return this.percentage;
-    };
+    countTodos: function () {
+      return todos.length;
+    },
 
-    var Income = function (id, description, value) {
-        this.id = id;
-        this.description = description;
-        this.value = value;
-    };
+    countCompletedTodos: function () {
+      var nb = todos.reduce(function (n, val) {
+        return n + (val.completed === true);
+      }, 0);
+      return nb;
+    },
 
-    calculateTotal = function (type) {
-        var sum = 0;
-        data.allItems[type].forEach(function (current) {
-            sum += current.value;
-        });
-        data.totals[type] = sum;
-    };
+    countleftTodos: function () {
+      return this.countTodos() - this.countCompletedTodos();
+    },
 
-    var data = {
-        allItems: {
-            exp: [],
-            inc: []
-        },
-        totals: {
-            exp: 0,
-            inc: 0
-        },
-        budget: 0,
-        percentage: -1
-    };
+    completeTodo: function (id) {
+      for (var i = 0; i < todos.length; i++) {
+        if (todos[i].id == id) {
+          todos[i].completed = true;
+          break;
+        }
+      }
+    },
 
-    return {
-        addItem: function (type, description, value) {
-            var ID;
-            if (data.allItems[type].length > 0) {
-                ID = data.allItems[type][data.allItems[type].length - 1].id + 1;
+    uncompleteTodo: function (id) {
+      for (var i = 0; i < todos.length; i++) {
+        if (todos[i].id == id) {
+          todos[i].completed = false;
+          break;
+        }
+      }
+    },
 
-            } else {
-                ID = 0;
-            }
-            var newItem;
-            if (type === 'exp') {
-                newItem = new Expense(ID, description, value);
-            } else if (type === 'inc') {
-                newItem = new Income(ID, description, value);
-            }
+    filterCompleted: function () {
+      return todos.filter(t => t.completed);
+    },
 
-            data.allItems[type].push(newItem);
-            return newItem;
-        },
+    filterLeft: function () {
+      return todos.filter(t => !t.completed);
+    },
 
-        deleteItem: function (id, type) {
-            var ids = data.allItems[type].map(function (current) {
-                return current.id;
-            });
-
-            var index = ids.indexOf(id);
-            console.log(index);
-            if (index >= 0) {
-                data.allItems[type].splice(index, 1);
-            }
-        },
-
-        calculateBudget: function () {
-            // calculate total income and expenses
-            calculateTotal('exp');
-            calculateTotal('inc');
-
-            // Calculate the budget: income - expenses
-            data.budget = data.totals.inc - data.totals.exp;
-
-            // calculate the percentage of income we spent
-            if (data.totals.inc > 0) {
-                data.percentage = Math.round((data.totals.exp / data.totals.inc) * 100);
-            } else {
-                data.percentage = -1;
-            }
-        },
-
-        calculatePercentages: function () {
-            data.allItems.exp.forEach(function (current) {
-                current.calculatePercentage(data.totals.inc);
-            });
-        },
-
-        getPercentages: function () {
-            var allPercentages = data.allItems.exp.map(function (current) {
-                return current.getPercentage();
-            });
-            return allPercentages;
-        },
-
-        getBudget: function () {
-            return {
-                budget: data.budget,
-                totalInc: data.totals.inc,
-                totalExp: data.totals.exp,
-                percentage: data.percentage
-            };
-        },
-
-        testing: function () {
-            console.log(data);
-        },
-    };
+    testing: function () {
+      console.log(todos);
+    },
+  };
 
 })();
 
 
-
-
+// User Interface controller
 var UIController = (function () {
+  var DOMstrings = {
+    todoInput: '#add__todo',
+    todoList: '#to-dos__list',
+    allTodos: '#all-todos',
+    allCompleted: '#all-completed',
+    alleft: '#all-left',
+    allTodoslink: '.all-todos-link',
+    allCompletedLink: '.all-completed-todos-link',
+    allLeftLink: '.all-left-todos-link'
 
-    var DOMstrings = {
-        inputType: ".add__type",
-        descriptionType: ".add__description",
-        valueType: ".add__value",
-        btnType: ".add__btn",
-        incomesContainer: ".income__list",
-        expensesContainer: ".expenses__list",
-        budgetLabel: ".budget__value",
-        incomeLabel: ".budget__income--value",
-        expenseLabel: ".budget__expenses--value",
-        percentageLabel: ".budget__expenses--percentage",
-        container: ".container",
-        expensesPercentageLabel: ".item__percentage",
-        monthLabel: ".budget__title--month",
-    };
+  };
 
-    var formatNumber = function (number, type) {
-        number = Math.abs(number);
-        number = number.toFixed(2);
+  return {
+    getDOMstrings: function () {
+      return DOMstrings;
+    },
 
-        var numSplit = number.split('.');
-        int = numSplit[0];
-        if (int.length > 3) {
-            int.substr(0, int.length - 3) + ',' + int.substr(int.length - 3, 3);
+    clearInput: function () {
+      document.querySelector(DOMstrings.todoInput).value = "";
+    },
 
-        }
+    addTodo: function (todo) {
+      if (todo) {
+        var html =
+          `
+          <li 
+            class="list-group-item" 
+            data-id=${todo.id}> ${todo.description}
+            <span class="delete"> x </span>
+          </li>
+        `
+        document.querySelector(DOMstrings.todoList).insertAdjacentHTML('beforeend', html);
+      }
+    },
 
-        dec = numSplit[1];
-        return (type === 'exp' ? '- ' : '+ ') + int + '.' + dec;
-    };
+    deleteTodo: function (todo) {
+      if (todo) {
+        todo.parentNode.removeChild(todo);
+      }
+    },
 
-    var getTypeInput = function () {
-        return document.querySelector(DOMstrings.inputType).value; // inc or exp
-    };
+    updateAllTodos: function (numberToDisplay) {
+      if (numberToDisplay >= 0) {
+        document.querySelector(DOMstrings.allTodos).innerHTML = numberToDisplay;
+      }
+    },
 
-    var getDescriptionInput = function () {
-        return document.querySelector(DOMstrings.descriptionType).value;
-    };
+    updateCompletedTodos: function (nbToDisplay) {
+      document.querySelector(DOMstrings.allCompleted).innerHTML = nbToDisplay;
+    },
 
-    var getValueInput = function () {
-        return parseFloat(document.querySelector(DOMstrings.valueType).value);
-    };
+    updateLeftTodos: function (nbToDisplay) {
+      document.querySelector(DOMstrings.alleft).innerHTML = nbToDisplay;
+    }
 
-    var nodeListForEach = function (list, callback) {
-        for (var i = 0; i < list.length; i++) {
-            callback(list[i], i);
-        }
-    };
+  };
 
-    return {
-        getinput: function () {
-            return {
-                type: getTypeInput(),
-                description: getDescriptionInput(),
-                value: getValueInput()
-            };
-
-        },
-
-        addListItem: function (item, type) {
-            // Create HTML string with placeholder text
-            var html;
-            var domElement;
-            if (type === 'inc') {
-                domElement = DOMstrings.incomesContainer;
-                html = '<div class="item clearfix" id="inc-%id%"> <div class="item__description">%description%</div> <div class="right clearfix"> <div class="item__value">%value%</div> <div class="item__delete"><button class="item__delete--btn"><i class="ion-ios-close-outline"></i></button> </div> </div> </div>';
-            } else if (type === 'exp') {
-                domElement = DOMstrings.expensesContainer;
-                html = '<div class="item clearfix" id="exp-%id%"> <div class="item__description">%description%</div><div class="right clearfix"><div class="item__value">%value%</div><div class="item__percentage">21%</div><div class="item__delete"><button class="item__delete--btn"><i class="ion-ios-close-outline"></i></button></div></div></div>';
-            }
-
-            // replace the palceolder text with some actual data
-            var newHtml = html
-                .replace("%id%", item.id)
-                .replace("%value%", this.formatNumber(item.value, type))
-                .replace("%description%", item.description);
-
-            // Insert the HTML in the DOM
-            document.querySelector(domElement).insertAdjacentHTML('beforeend', newHtml);
-        },
-
-        deleteListItem: function (selectorId) {
-            var item = document.getElementById(selectorId);
-            item.parentNode.removeChild(item);
-        },
-
-        displayPercentages: function (percentages) {
-            var fields = document.querySelectorAll(DOMstrings.expensesPercentageLabel);
-
-            nodeListForEach(fields, function (current, index) {
-                if (percentages[index] > 0) {
-                    current.textContent = percentages[index] + "%";
-                } else {
-                    current.textContent = "--";
-                }
-            });
-
-
-        },
-
-        clearFields: function () {
-            var fields = document.querySelectorAll(DOMstrings.descriptionType + "," + DOMstrings.valueType);
-            var fieldsArray = Array.prototype.slice.call(fields);
-
-            fieldsArray.forEach(function (current, index, array) {
-                current.value = "";
-            });
-
-            fieldsArray[0].focus();
-        },
-
-        displayBudget: function (budget) {
-
-            var type = budget.budget > 0 ? 'inc' : 'exp';
-
-            document.querySelector(DOMstrings.budgetLabel).textContent = formatNumber(budget.budget, type);
-            document.querySelector(DOMstrings.expenseLabel).textContent = formatNumber(budget.totalExp, 'exp');
-            document.querySelector(DOMstrings.incomeLabel).textContent = formatNumber(budget.totalInc, 'inc');
-            if (budget.percentage > 0) {
-                document.querySelector(DOMstrings.percentageLabel).textContent = budget.percentage + "%";
-            } else {
-                document.querySelector(DOMstrings.percentageLabel).textContent = "---";
-            }
-        },
-
-        displayMonth: function () {
-            var months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
-            var now = new Date();
-            var month = now.getMonth();
-            var year = now.getFullYear();
-            document.querySelector(DOMstrings.monthLabel).textContent = months[month] + " " + year;
-        },
-
-        
-        changedType: function () {
-            var fields = document.querySelectorAll(
-                DOMstrings.inputType + "," +
-                DOMstrings.descriptionType + "," +
-                DOMstrings.valueType);
-
-            nodeListForEach(fields, function (cur) {
-                cur.classList.toggle('red-focus');
-            });
-
-            document.querySelector(DOMstrings.btnType).classList.toggle('red');
-
-        },
-
-        getDOMstrings: function () {
-            return DOMstrings;
-        }
-    };
 })();
 
 
+// GLOBAL APP CONTROLLER
+var controller = (function (UICtrl, todoCtrl) {
+  var DOM = UICtrl.getDOMstrings();
+
+  var setupeEventListeners = function () {
+    document.addEventListener('keypress', function (event) {
+      var returnKeyNumber = 13;
+      if (event.keyCode === returnKeyNumber || event.which === returnKeyNumber) {
+        addItem();
+      }
+    });
+
+    // document.querySelector(DOM.todoList).addEventListener('dblclick', deleteItem);
+    document.querySelector(DOM.todoList).addEventListener('click', handleTodoListClick);
+    document.querySelector(DOM.allCompletedLink).addEventListener('click', filterCompletedTodos);
+    document.querySelector(DOM.allTodoslink).addEventListener('click', filterAllTodos);
+    document.querySelector(DOM.allLeftLink).addEventListener('click', filterLeftTodos);
+  };
 
 
-var controller = (function (budgetCtrl, UICtrl) {
-    var setupEventListeners = function () {
-        var DOM = UICtrl.getDOMstrings();
-        document.querySelector(DOM.btnType).addEventListener('click', ctrlAddItem);
+  var addItem = function () {
+    var description = document.querySelector(DOM.todoInput).value;
+    if (description) {
+      // add the todo to the todoController
+      var newTodo = todoCtrl.addTodo(description);
 
-        document.addEventListener('keypress', function (event) {
-            if (event.keyCode === 13) {
-                ctrlAddItem();
-            }
-        });
+      // add the item to the UI
+      UICtrl.addTodo(newTodo);
 
-        document.querySelector(DOM.container).addEventListener('click', ctrlDeleteItem);
-        document.querySelector(DOM.inputType).addEventListener('change', UICtrl.changedType());
-    };
+      // update badges
+      updateBadges();
 
-    var updateBudget = function () {
-        // 1. Calculate the budget
-        budgetCtrl.calculateBudget();
+      // clear the fields
+      UICtrl.clearInput();
+    }
 
-        // 2. return the budget
-        var budget = budgetCtrl.getBudget();
+  };
 
-        // 3. Display the budget on the UI
-        UICtrl.displayBudget(budget);
-    };
+  var handleTodoListClick = function (event) {
+    var deleteClassName = "delete";
+    var listClassName = "list-group-item";
 
-    var updatePercentages = function () {
-        // 1. Calculate percentage
-        budgetCtrl.calculatePercentages();
-        // 2. Read percentages from the budget controller
-        var percentages = budgetCtrl.getPercentages();
-        // 3. Update he UI with the new percentages
-        UICtrl.displayPercentages(percentages);
-    };
+    if (event.target.className === deleteClassName) {
+      deleteItem(event.target.parentNode);
+    } else if (event.target.classList.contains(listClassName)) {
+      completeTodo(event.target);
+    }
+  };
 
-    var ctrlAddItem = function () {
-        // 1. Get the field input data
-        var input = UICtrl.getinput();
+  var deleteItem = function (element) {
+    todoCtrl.deleteTodo(element);
+    UICtrl.deleteTodo(element);
+    updateBadges();
+  };
 
-        if (input.description !== "" && !isNaN(input.value) && input.value > 0) {
-            // 2. Add the item to the budget controller
-            var newItem = budgetController.addItem(input.type, input.description, input.value);
+  var completeTodo = function (element) {
+    if (element) {
+      var id = element.getAttribute("data-id");;
+      if (element.classList.contains('completed')) {
+        todoCtrl.uncompleteTodo(id);
+      } else {
+        todoCtrl.completeTodo(id)
+      }
+      element.classList.toggle('completed');
+      updateBadges();
+    }
+  };
 
-            // 3. Add the item to the UI
-            UICtrl.addListItem(newItem, input.type);
+  var filterCompletedTodos = function () {
+    console.log('filter completed');
+  };
 
-            // 3.5 Clear the fields
-            UICtrl.clearFields();
+  var filterAllTodos = function () {
+    console.log('filter all');
+  };
 
-            // 4. Calculate and update the budget
-            updateBudget();
-
-            // 5. Calculate and update percentages. 
-            updatePercentages();
-        }
-
-
-    };
-
-    var ctrlDeleteItem = function (event) {
-        // console.log(event.target.parentNode);
-        var itemId = event.target.parentNode.parentNode.parentNode.parentNode.id;
-
-        if (itemId) {
-            // id fomat = inc-0; inc-1 etc..
-            var splitId = itemId.split('-');
-            var type = splitId[0];
-            var id = parseInt(splitId[1]);
-
-            // 1. delete item from the data structure
-            budgetCtrl.deleteItem(id, type);
-
-            // 2. delete item from the UI
-            UICtrl.deleteListItem(itemId);
-            // 3. Update and show the new budget
-            updateBudget();
-
-            updatePercentages();
-        }
-    };
-
-    return {
-        init: function () {
-            UICtrl.displayBudget({
-                budget: 0,
-                totalInc: 0,
-                totalExp: 0,
-                percentage: -1
-            });
-            UIController.displayMonth();
-            setupEventListeners();
-        }
-    };
+  var filterLeftTodos = function () {
+    console.log('filter left');
+  };
 
 
-})(budgetController, UIController);
+  var updateBadges = function () {
+    UICtrl.updateAllTodos(todoCtrl.countTodos());
+    UICtrl.updateCompletedTodos(todoCtrl.countCompletedTodos());
+    UICtrl.updateLeftTodos(todoCtrl.countleftTodos());
+  }
+
+  return {
+    init: function () {
+      console.log(" application has started");
+      setupeEventListeners();
+    }
+  };
+})(UIController, todoController);
 
 controller.init();

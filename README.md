@@ -1,2 +1,4 @@
-# budget
-Javascript Vanilla budget app
+# todo-list-vanilla
+Vanilla JS todo list
+
+practicing html css and vanilla js skills
